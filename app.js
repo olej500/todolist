@@ -14,17 +14,24 @@ const itemSchema = new mongoose.Schema({
   name: String
 });
 const Item = mongoose.model("Item", itemSchema);
+const DefaultItem = mongoose.model("DefaultItem", itemSchema);
 
-const item1 = new Item({
+const item1 = new DefaultItem({
   name: "Welcome to your to do list"
 })
-const item2 = new Item({
+const item2 = new DefaultItem({
   name: "Hit the ➕ button to add an item"
 })
-const item3 = new Item({
-  name: "⬅️ Click the checkbox to delete an item"
+const item3 = new DefaultItem({
+  name: "⬇️ Click the checkbox to delete an item"
 })
 const defaultItems = [item1, item2, item3];
+
+DefaultItem.find({}).then(function(foundItems){
+  if (foundItems.length === 0){
+    DefaultItem.insertMany(defaultItems).then();
+  }
+})
 
 const listSchema = new mongoose.Schema({
   name: String,
@@ -67,12 +74,9 @@ app.post("/delete", function(req, res){
 
 app.get("/", function(req, res) {
   Item.find({}).then(function(foundItems){
-    if (foundItems.length === 0){
-      Item.insertMany(defaultItems).then();
-      res.redirect("/");
-    } else {
-      res.render("list", {listTitle: "Today", newListItems: foundItems});
-    }
+    DefaultItem.find({}).then(function(foundDefault){
+      res.render("list", {listTitle: "Today", listDefaultItems: foundDefault, newListItems: foundItems});
+    })
   });
 });
 
@@ -81,7 +85,9 @@ app.get("/:customListName", function(req,res){
   
   List.findOne({name: customListName}).then(function(result){
     if (result) {
-      res.render("list", {listTitle: customListName, newListItems: result.items});
+      DefaultItem.find({}).then(function(foundDefault){
+        res.render("list", {listTitle: customListName, listDefaultItems: foundDefault, newListItems: result.items});
+      })
     } else {
       const list = new List({
         name: customListName,
@@ -91,10 +97,6 @@ app.get("/:customListName", function(req,res){
       res.redirect("/" + customListName);
     }
   });
-});
-
-app.get("/about", function(req, res){
-  res.render("about");
 });
 
 app.listen(3000, function() {
